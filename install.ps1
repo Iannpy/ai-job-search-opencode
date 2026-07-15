@@ -134,45 +134,48 @@ if (-not (Test-Path $ConfigPath)) {
     exit 1
 }
 
-$config = Get-Content $ConfigPath -Raw | ConvertFrom-Json -AsHashtable
-
-if (-not $config.ContainsKey("agents")) {
-    $config["agents"] = @{}
-}
+$config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 
 $newAgents = @{
-    "job-assistant" = @{
+    "job-assistant" = [PSCustomObject]@{
         mode = "primary"
         prompt = "You are a job search assistant powered by AI Job Search OpenCode. Read .opencode/skills/job-search/SKILL.md and follow it exactly."
-        tools = @{ bash = $true; edit = $true; read = $true; write = $true; delegate = $true }
+        tools = [PSCustomObject]@{ bash = $true; edit = $true; read = $true; write = $true; delegate = $true }
     }
-    "job-reviewer" = @{
+    "job-reviewer" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
         prompt = "{file:.opencode/skills/job-search/SKILL.md}"
-        tools = @{ bash = $true; read = $true }
+        tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
-    "job-scraper" = @{
+    "job-scraper" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
         prompt = "{file:.opencode/skills/job-scraper/SKILL.md}"
-        tools = @{ bash = $true; read = $true }
+        tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
-    "job-upskill" = @{
+    "job-upskill" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
         prompt = "{file:.opencode/skills/job-search/SKILL.md}"
-        tools = @{ bash = $true; read = $true }
+        tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
+}
+
+# Ensure agents property exists
+if (-not ($config | Get-Member -Name "agents" -MemberType NoteProperty)) {
+    $config | Add-Member -MemberType NoteProperty -Name "agents" -Value ([PSCustomObject]@{})
 }
 
 $added = @()
 $skipped = @()
+
 foreach ($agentName in $newAgents.Keys) {
-    if ($config.agents.ContainsKey($agentName)) {
+    $existing = $config.agents | Get-Member -MemberType NoteProperty -Name $agentName -ErrorAction SilentlyContinue
+    if ($existing) {
         $skipped += $agentName
     } else {
-        $config.agents[$agentName] = $newAgents[$agentName]
+        $config.agents | Add-Member -MemberType NoteProperty -Name $agentName -Value $newAgents[$agentName]
         $added += $agentName
     }
 }
