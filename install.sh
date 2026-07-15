@@ -59,11 +59,68 @@ for dir in job-search job-scraper job-tools; do
 done
 echo ""
 
-# 4. Agent registration instructions
-echo "[4/4] Agent registration"
-echo ""
-echo "  Add the job-* agents to your opencode.json manually,"
-echo "  or run this repo with opencode and the skill will self-register via AGENTS.md."
+# 4. Register agents in opencode.json automatically
+echo "[4/4] Registering agents in opencode.json..."
+
+CONFIG_PATH="${OPENCODE_CONFIG}/opencode.json"
+
+if [ ! -f "$CONFIG_PATH" ]; then
+    echo "  [ERROR] opencode.json not found at $CONFIG_PATH"
+    echo "  Make sure OpenCode is installed and has been run at least once."
+    exit 1
+fi
+
+# Use python to merge agents (available on all platforms)
+python3 -c "
+import json, sys
+
+with open('$CONFIG_PATH') as f:
+    config = json.load(f)
+
+config.setdefault('agents', {})
+
+new_agents = {
+    'job-assistant': {
+        'mode': 'primary',
+        'prompt': 'You are a job search assistant powered by AI Job Search OpenCode. Read .opencode/skills/job-search/SKILL.md and follow it exactly.',
+        'tools': {'bash': True, 'edit': True, 'read': True, 'write': True, 'delegate': True}
+    },
+    'job-reviewer': {
+        'mode': 'subagent', 'hidden': True,
+        'prompt': '{file:.opencode/skills/job-search/SKILL.md}',
+        'tools': {'bash': True, 'read': True}
+    },
+    'job-scraper': {
+        'mode': 'subagent', 'hidden': True,
+        'prompt': '{file:.opencode/skills/job-scraper/SKILL.md}',
+        'tools': {'bash': True, 'read': True}
+    },
+    'job-upskill': {
+        'mode': 'subagent', 'hidden': True,
+        'prompt': '{file:.opencode/skills/job-search/SKILL.md}',
+        'tools': {'bash': True, 'read': True}
+    }
+}
+
+added = []
+skipped = []
+for name, agent in new_agents.items():
+    if name in config['agents']:
+        skipped.append(name)
+    else:
+        config['agents'][name] = agent
+        added.append(name)
+
+with open('$CONFIG_PATH', 'w') as f:
+    json.dump(config, f, indent=2)
+    f.write('\n')
+
+for a in added:
+    print(f'  Registered: {a}')
+for s in skipped:
+    print(f'  Skipped (already exists): {s}')
+"
+
 echo ""
 echo "========================================"
 echo " Installation complete!"

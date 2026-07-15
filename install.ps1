@@ -64,35 +64,68 @@ foreach ($dir in $SkillDirs) {
 }
 Write-Host ""
 
-# 4. Agent registration instructions
-Write-Host "[4/4] Agent registration" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "  Add these agents to your opencode.json (under ` + '"`"agents`"`' + "):" -ForegroundColor Cyan
-Write-Host @'
+# 4. Register agents in opencode.json automatically
+Write-Host "[4/4] Registering agents in opencode.json..." -ForegroundColor Yellow
 
-{
-  "job-assistant": {
-    "mode": "primary",
-    "prompt": "You are a job search assistant powered by AI Job Search OpenCode. Read .opencode/skills/job-search/SKILL.md and follow it exactly.",
-    "tools": { "bash": true, "edit": true, "read": true, "write": true, "delegate": true }
-  },
-  "job-reviewer": {
-    "mode": "subagent", "hidden": true,
-    "prompt": "{file:.opencode/skills/job-search/SKILL.md}",
-    "tools": { "bash": true, "read": true }
-  },
-  "job-scraper": {
-    "mode": "subagent", "hidden": true,
-    "prompt": "{file:.opencode/skills/job-scraper/SKILL.md}",
-    "tools": { "bash": true, "read": true }
-  },
-  "job-upskill": {
-    "mode": "subagent", "hidden": true,
-    "prompt": "{file:.opencode/skills/job-search/SKILL.md}",
-    "tools": { "bash": true, "read": true }
-  }
+$ConfigPath = "$OpencodeConfig\opencode.json"
+
+if (-not (Test-Path $ConfigPath)) {
+    Write-Host "  [ERROR] opencode.json not found at $ConfigPath" -ForegroundColor Red
+    Write-Host "  Make sure OpenCode is installed and has been run at least once." -ForegroundColor Red
+    exit 1
 }
-'@
+
+$config = Get-Content $ConfigPath -Raw | ConvertFrom-Json -AsHashtable
+
+if (-not $config.ContainsKey("agents")) {
+    $config["agents"] = @{}
+}
+
+$newAgents = @{
+    "job-assistant" = @{
+        mode = "primary"
+        prompt = "You are a job search assistant powered by AI Job Search OpenCode. Read .opencode/skills/job-search/SKILL.md and follow it exactly."
+        tools = @{ bash = $true; edit = $true; read = $true; write = $true; delegate = $true }
+    }
+    "job-reviewer" = @{
+        mode = "subagent"
+        hidden = $true
+        prompt = "{file:.opencode/skills/job-search/SKILL.md}"
+        tools = @{ bash = $true; read = $true }
+    }
+    "job-scraper" = @{
+        mode = "subagent"
+        hidden = $true
+        prompt = "{file:.opencode/skills/job-scraper/SKILL.md}"
+        tools = @{ bash = $true; read = $true }
+    }
+    "job-upskill" = @{
+        mode = "subagent"
+        hidden = $true
+        prompt = "{file:.opencode/skills/job-search/SKILL.md}"
+        tools = @{ bash = $true; read = $true }
+    }
+}
+
+$added = @()
+$skipped = @()
+foreach ($agentName in $newAgents.Keys) {
+    if ($config.agents.ContainsKey($agentName)) {
+        $skipped += $agentName
+    } else {
+        $config.agents[$agentName] = $newAgents[$agentName]
+        $added += $agentName
+    }
+}
+
+if ($added.Count -gt 0) {
+    $json = $config | ConvertTo-Json -Depth 10
+    Set-Content $ConfigPath -Value $json -NoNewline
+    foreach ($a in $added) { Write-Host "  Registered: $a" -ForegroundColor Green }
+}
+if ($skipped.Count -gt 0) {
+    foreach ($s in $skipped) { Write-Host "  Skipped (already exists): $s" -ForegroundColor DarkYellow }
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
