@@ -139,25 +139,25 @@ $config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 $newAgents = @{
     "job-assistant" = [PSCustomObject]@{
         mode = "primary"
-        prompt = "You are a job search assistant powered by AI Job Search OpenCode. Read .opencode/skills/job-search/SKILL.md and follow it exactly."
+        prompt = "{file:skills/job-search/SKILL.md}"
         tools = [PSCustomObject]@{ bash = $true; edit = $true; read = $true; write = $true; delegate = $true }
     }
     "job-reviewer" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
-        prompt = "{file:.opencode/skills/job-search/SKILL.md}"
+        prompt = "{file:skills/job-search/SKILL.md}"
         tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
     "job-scraper" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
-        prompt = "{file:.opencode/skills/job-scraper/SKILL.md}"
+        prompt = "{file:skills/job-scraper/SKILL.md}"
         tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
     "job-upskill" = [PSCustomObject]@{
         mode = "subagent"
         hidden = $true
-        prompt = "{file:.opencode/skills/job-search/SKILL.md}"
+        prompt = "{file:skills/job-search/SKILL.md}"
         tools = [PSCustomObject]@{ bash = $true; read = $true }
     }
 }

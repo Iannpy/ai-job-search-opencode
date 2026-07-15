@@ -175,17 +175,17 @@ new_agents = {
     },
     'job-reviewer': {
         'mode': 'subagent', 'hidden': True,
-        'prompt': '{file:.opencode/skills/job-search/SKILL.md}',
+        'prompt': '{file:skills/job-search/SKILL.md}',
         'tools': {'bash': True, 'read': True}
     },
     'job-scraper': {
         'mode': 'subagent', 'hidden': True,
-        'prompt': '{file:.opencode/skills/job-scraper/SKILL.md}',
+        'prompt': '{file:skills/job-scraper/SKILL.md}',
         'tools': {'bash': True, 'read': True}
     },
     'job-upskill': {
         'mode': 'subagent', 'hidden': True,
-        'prompt': '{file:.opencode/skills/job-search/SKILL.md}',
+        'prompt': '{file:skills/job-search/SKILL.md}',
         'tools': {'bash': True, 'read': True}
     }
 }
