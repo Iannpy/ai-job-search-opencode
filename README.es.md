@@ -80,14 +80,20 @@ flowchart TD
 
 ## Inicio rápido
 
-### 1. Haz un fork y clona
+### 1. Instala OpenCode
+
+```bash
+npm i -g opencode
+```
+
+### 2. Haz un fork y clona
 
 ```bash
 gh repo fork Iannpy/ai-job-search-opencode --clone
 cd ai-job-search-opencode
 ```
 
-### 2. Instala
+### 3. Ejecuta el instalador
 
 **Windows:**
 ```powershell
@@ -99,9 +105,9 @@ cd ai-job-search-opencode
 bash install.sh
 ```
 
-El script copia comandos y skills a `~/.config/opencode/`, verifica tus dependencias y te muestra el bloque de agentes para agregar a `opencode.json`.
+El script se encarga de **todo**: instala Bun, Python, LaTeX y poppler si faltan, configura las dependencias de los scrapers, copia comandos y skills a tu configuración de OpenCode, y registra los agentes. Solo necesitas instalar OpenCode por tu cuenta.
 
-### 3. Crea tu perfil
+### 4. Crea tu perfil
 
 ```
 /job-setup
@@ -109,7 +115,7 @@ El script copia comandos y skills a `~/.config/opencode/`, verifica tus dependen
 
 Tres caminos: coloca archivos en `documents/` (CV PDF, exportación de LinkedIn, diplomas), pega un CV suelto o realiza la entrevista guiada. Cuanto más completo sea el material de entrada, mejores serán los resultados.
 
-### 4. Busca
+### 5. Busca
 
 ```
 /job-scrape
@@ -117,7 +123,7 @@ Tres caminos: coloca archivos en `documents/` (CV PDF, exportación de LinkedIn,
 
 Busca en LinkedIn + freehire.dev en paralelo. Deduplica entre ejecuciones. Ordenado por nivel de ajuste.
 
-### 5. Postula
+### 6. Postula
 
 ```
 /job-apply https://example.com/oferta
@@ -148,10 +154,12 @@ O pega la descripción directamente. El pipeline redactor-revisor se ejecuta: ev
 | Herramienta | Para qué | Instalación |
 |-------------|----------|-------------|
 | [OpenCode](https://opencode.ai) | El entorno de ejecución del agente | `npm i -g opencode` |
-| [Bun](https://bun.sh) | Ejecuta los scrapers CLI | `npm i -g bun` |
-| Python 3.10+ | Comparativa salarial | [python.org](https://python.org) |
-| LaTeX (lualatex + xelatex) | PDFs del CV y la carta | [MiKTeX](https://miktex.org) (Win) · [MacTeX](https://tug.org/mactex) (Mac) · [TeX Live](https://tug.org/texlive) (Linux) |
-| poppler (`pdftotext`) | Verificación ATS de capa de texto *(opcional)* | `choco install poppler` (Win) · `brew install poppler` (Mac) · `apt install poppler-utils` (Linux) |
+| [Bun](https://bun.sh) | Ejecuta los scrapers CLI | Gestionado por `install.ps1` |
+| Python 3.10+ | Comparativa salarial | Gestionado por `install.ps1` |
+| LaTeX (lualatex + xelatex) | PDFs del CV y la carta | Gestionado por `install.ps1` |
+| poppler (`pdftotext`) | Verificación ATS de capa de texto *(opcional)* | Gestionado por `install.ps1` |
+
+> **Solo OpenCode debe instalarse manualmente.** Ejecuta `.\install.ps1` (Windows) o `bash install.sh` (macOS/Linux) y el script se encarga del resto.
 
 ---
 

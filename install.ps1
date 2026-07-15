@@ -1,6 +1,6 @@
 # AI Job Search OpenCode - Windows Installer
-# Copies commands and skills to ~/.config/opencode/
 # Run from the repo root: .\install.ps1
+# Installs all dependencies (except OpenCode), copies skills, registers agents.
 
 $ErrorActionPreference = "Stop"
 $OpencodeConfig = "$env:USERPROFILE\.config\opencode"
@@ -11,22 +11,77 @@ Write-Host " AI Job Search OpenCode - Installer" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Verify dependencies
-Write-Host "[1/4] Checking dependencies..." -ForegroundColor Yellow
+function Test-Command($cmd) {
+    try { Get-Command $cmd -ErrorAction Stop 2>&1 | Out-Null; return $true } catch { return $false }
+}
 
-$DepsOk = $true
+# ------------------------------------------------------------------
+# 1. Install global dependencies
+# ------------------------------------------------------------------
+Write-Host "[1/5] Installing dependencies..." -ForegroundColor Yellow
 
-try { bun --version 2>&1 | Out-Null } catch { Write-Host "  [WARN] bun not found - job scrapers won't work" -ForegroundColor Red; $DepsOk = $false }
-try { python --version 2>&1 | Out-Null } catch { Write-Host "  [WARN] python not found - salary lookup won't work" -ForegroundColor Red; $DepsOk = $false }
-try { lualatex --version 2>&1 | Out-Null } catch { Write-Host "  [WARN] lualatex not found - CV compilation won't work. Install MiKTeX or TeX Live." -ForegroundColor Red; $DepsOk = $false }
-try { xelatex --version 2>&1 | Out-Null } catch { Write-Host "  [WARN] xelatex not found - cover letter compilation won't work" -ForegroundColor Red }
-try { pdftotext -v 2>&1 | Out-Null } catch { Write-Host "  [INFO] pdftotext not found - ATS text verification will use degraded mode (install poppler for full support)" -ForegroundColor DarkYellow }
+$missing = @()
 
-if ($DepsOk) { Write-Host "  All core dependencies found." -ForegroundColor Green }
+# Bun
+if (-not (Test-Command "bun")) {
+    $missing += "bun"
+    Write-Host "  Installing Bun..." -ForegroundColor DarkYellow
+    irm bun.sh/install.ps1 | iex
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    Write-Host "  Bun installed" -ForegroundColor Green
+} else {
+    Write-Host "  bun: found" -ForegroundColor Green
+}
+
+# Python
+if (-not (Test-Command "python")) {
+    $missing += "python"
+    Write-Host "  Installing Python 3.12..." -ForegroundColor DarkYellow
+    winget install Python.Python.3.12 --accept-source-agreements --accept-package-agreements
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    Write-Host "  Python installed (restart terminal if python is not found)" -ForegroundColor Green
+} else {
+    Write-Host "  python: found" -ForegroundColor Green
+}
+
+# MiKTeX (LaTeX)
+if (-not (Test-Command "lualatex")) {
+    $missing += "miktex"
+    Write-Host "  Installing MiKTeX (~1 GB, this may take a while)..." -ForegroundColor DarkYellow
+    winget install MiKTeX.MiKTeX --accept-source-agreements --accept-package-agreements
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    Write-Host "  MiKTeX installed (restart terminal if lualatex is not found)" -ForegroundColor Green
+} else {
+    Write-Host "  lualatex: found" -ForegroundColor Green
+}
+
+if (-not (Test-Command "xelatex")) {
+    Write-Host "  [WARN] xelatex not found - cover letter compilation may fail" -ForegroundColor Red
+} else {
+    Write-Host "  xelatex: found" -ForegroundColor Green
+}
+
+# poppler (pdftotext) - optional
+if (-not (Test-Command "pdftotext")) {
+    Write-Host "  Installing poppler (pdftotext)..." -ForegroundColor DarkYellow
+    winget install "poppler" --accept-source-agreements --accept-package-agreements --silent
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "User") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    Write-Host "  poppler installed (restart terminal if pdftotext is not found)" -ForegroundColor Green
+} else {
+    Write-Host "  pdftotext: found" -ForegroundColor Green
+}
+
+if ($missing.Count -gt 0) {
+    Write-Host ""
+    Write-Host "  Some tools were just installed. If commands are not found," -ForegroundColor Yellow
+    Write-Host "  close and reopen your terminal, then re-run this script." -ForegroundColor Yellow
+}
 Write-Host ""
 
+# ------------------------------------------------------------------
 # 2. Install Bun dependencies for CLI scrapers
-Write-Host "[2/4] Installing Bun dependencies for scrapers..." -ForegroundColor Yellow
+# ------------------------------------------------------------------
+Write-Host "[2/5] Installing Bun dependencies for scrapers..." -ForegroundColor Yellow
 
 $ScraperDirs = @("linkedin-search", "freehire-search")
 foreach ($dir in $ScraperDirs) {
@@ -42,8 +97,10 @@ foreach ($dir in $ScraperDirs) {
 }
 Write-Host ""
 
+# ------------------------------------------------------------------
 # 3. Copy commands and skills to opencode config
-Write-Host "[3/4] Copying commands and skills to $OpencodeConfig..." -ForegroundColor Yellow
+# ------------------------------------------------------------------
+Write-Host "[3/5] Copying commands and skills to $OpencodeConfig..." -ForegroundColor Yellow
 
 New-Item -ItemType Directory -Force -Path "$OpencodeConfig\commands" | Out-Null
 New-Item -ItemType Directory -Force -Path "$OpencodeConfig\skills" | Out-Null
@@ -64,14 +121,16 @@ foreach ($dir in $SkillDirs) {
 }
 Write-Host ""
 
-# 4. Register agents in opencode.json automatically
-Write-Host "[4/4] Registering agents in opencode.json..." -ForegroundColor Yellow
+# ------------------------------------------------------------------
+# 4. Register agents in opencode.json
+# ------------------------------------------------------------------
+Write-Host "[4/5] Registering agents in opencode.json..." -ForegroundColor Yellow
 
 $ConfigPath = "$OpencodeConfig\opencode.json"
 
 if (-not (Test-Path $ConfigPath)) {
     Write-Host "  [ERROR] opencode.json not found at $ConfigPath" -ForegroundColor Red
-    Write-Host "  Make sure OpenCode is installed and has been run at least once." -ForegroundColor Red
+    Write-Host "  Make sure OpenCode is installed (npm i -g opencode) and has been run at least once." -ForegroundColor Red
     exit 1
 }
 
@@ -128,12 +187,27 @@ if ($skipped.Count -gt 0) {
 }
 
 Write-Host ""
+
+# ------------------------------------------------------------------
+# 5. Done
+# ------------------------------------------------------------------
+Write-Host "[5/5] Checking OpenCode..." -ForegroundColor Yellow
+
+if (-not (Test-Command "opencode")) {
+    Write-Host "  [ACTION REQUIRED] OpenCode CLI not found." -ForegroundColor Yellow
+    Write-Host "  Install it with: npm i -g opencode" -ForegroundColor White
+} else {
+    Write-Host "  opencode: found" -ForegroundColor Green
+}
+
+Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host " Installation complete!" -ForegroundColor Green
+Write-Host " All done!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Next steps:" -ForegroundColor White
-Write-Host "  1. Run /job-setup to build your profile" -ForegroundColor White
-Write-Host "  2. Run /job-scrape to search for jobs" -ForegroundColor White
-Write-Host "  3. Run /job-apply <url> to apply" -ForegroundColor White
+Write-Host "  Open a terminal here and run:" -ForegroundColor White
+Write-Host "    opencode" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Then:" -ForegroundColor White
+Write-Host "    /job-setup" -ForegroundColor Cyan
 Write-Host ""

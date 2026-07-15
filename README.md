@@ -80,14 +80,20 @@ flowchart TD
 
 ## Quick start
 
-### 1. Fork & clone
+### 1. Install OpenCode
+
+```bash
+npm i -g opencode
+```
+
+### 2. Fork & clone
 
 ```bash
 gh repo fork Iannpy/ai-job-search-opencode --clone
 cd ai-job-search-opencode
 ```
 
-### 2. Install
+### 3. Run the installer
 
 **Windows:**
 ```powershell
@@ -99,9 +105,9 @@ cd ai-job-search-opencode
 bash install.sh
 ```
 
-The script copies commands and skills to `~/.config/opencode/`, checks your dependencies, and prints the agent block to add to `opencode.json`.
+The script handles **everything**: installs Bun, Python, LaTeX, and poppler if missing, sets up scraper dependencies, copies commands and skills to your OpenCode config, and registers the agents. You only need to install OpenCode yourself.
 
-### 3. Build your profile
+### 4. Build your profile
 
 ```
 /job-setup
@@ -109,7 +115,7 @@ The script copies commands and skills to `~/.config/opencode/`, checks your depe
 
 Three paths: drop files in `documents/` (CV PDF, LinkedIn export, diplomas), paste a single CV, or walk through an interview. Richer input = sharper output.
 
-### 4. Search
+### 5. Search
 
 ```
 /job-scrape
@@ -117,7 +123,7 @@ Three paths: drop files in `documents/` (CV PDF, LinkedIn export, diplomas), pas
 
 Searches LinkedIn + freehire.dev in parallel. Deduplicates across runs. Sorted by fit.
 
-### 5. Apply
+### 6. Apply
 
 ```
 /job-apply https://example.com/job-posting
@@ -148,10 +154,12 @@ Or paste the job description directly. The drafter-reviewer pipeline runs: evalu
 | Tool | Why | Install |
 |------|-----|---------|
 | [OpenCode](https://opencode.ai) | The agent runtime | `npm i -g opencode` |
-| [Bun](https://bun.sh) | Runs the job scraper CLIs | `npm i -g bun` |
-| Python 3.10+ | Salary benchmarking | [python.org](https://python.org) |
-| LaTeX (lualatex + xelatex) | CV and cover letter PDFs | [MiKTeX](https://miktex.org) (Win) · [MacTeX](https://tug.org/mactex) (Mac) · [TeX Live](https://tug.org/texlive) (Linux) |
-| poppler (`pdftotext`) | ATS text-layer verification *(optional)* | `choco install poppler` (Win) · `brew install poppler` (Mac) · `apt install poppler-utils` (Linux) |
+| [Bun](https://bun.sh) | Runs the job scraper CLIs | Handled by `install.ps1` |
+| Python 3.10+ | Salary benchmarking | Handled by `install.ps1` |
+| LaTeX (lualatex + xelatex) | CV and cover letter PDFs | Handled by `install.ps1` |
+| poppler (`pdftotext`) | ATS text-layer verification *(optional)* | Handled by `install.ps1` |
+
+> **Only OpenCode needs to be installed manually.** Run `.\install.ps1` (Windows) or `bash install.sh` (macOS/Linux) and it takes care of the rest.
 
 ---
 

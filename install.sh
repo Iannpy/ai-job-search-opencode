@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # AI Job Search OpenCode - Unix Installer
-# Copies commands and skills to ~/.config/opencode/
 # Run from the repo root: bash install.sh
+# Installs all dependencies (except OpenCode), copies skills, registers agents.
 
 set -euo pipefail
 
@@ -13,22 +13,107 @@ echo " AI Job Search OpenCode - Installer"
 echo "========================================"
 echo ""
 
-# 1. Verify dependencies
-echo "[1/4] Checking dependencies..."
+# ------------------------------------------------------------------
+# 1. Install global dependencies
+# ------------------------------------------------------------------
+echo "[1/5] Installing dependencies..."
 
-DEPS_OK=true
+DETECTED_OS="$(uname -s)"
 
-command -v bun >/dev/null 2>&1 || { echo "  [WARN] bun not found - job scrapers won't work"; DEPS_OK=false; }
-command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1 || { echo "  [WARN] python not found - salary lookup won't work"; DEPS_OK=false; }
-command -v lualatex >/dev/null 2>&1 || { echo "  [WARN] lualatex not found - CV compilation won't work. Install TeX Live or MacTeX."; DEPS_OK=false; }
-command -v xelatex >/dev/null 2>&1 || { echo "  [WARN] xelatex not found - cover letter compilation won't work"; }
-command -v pdftotext >/dev/null 2>&1 || { echo "  [INFO] pdftotext not found - ATS text verification will use degraded mode (install poppler for full support)"; }
+# Bun
+if ! command -v bun >/dev/null 2>&1; then
+    echo "  Installing Bun..."
+    curl -fsSL https://bun.sh/install | bash
+    export PATH="$HOME/.bun/bin:$PATH"
+    echo "  Bun installed"
+else
+    echo "  bun: found"
+fi
 
-if $DEPS_OK; then echo "  All core dependencies found."; fi
+# Python
+if ! command -v python3 >/dev/null 2>&1 && ! command -v python >/dev/null 2>&1; then
+    echo "  Installing Python..."
+    case "$DETECTED_OS" in
+        Darwin)
+            if command -v brew >/dev/null 2>&1; then
+                brew install python@3.12
+            fi
+            ;;
+        Linux)
+            if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update -qq && sudo apt-get install -y -qq python3 python3-pip
+            elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y python3 python3-pip
+            elif command -v pacman >/dev/null 2>&1; then
+                sudo pacman -S --noconfirm python python-pip
+            fi
+            ;;
+    esac
+    echo "  Python installed"
+else
+    echo "  python: found"
+fi
+
+# LaTeX
+if ! command -v lualatex >/dev/null 2>&1; then
+    echo "  Installing LaTeX..."
+    case "$DETECTED_OS" in
+        Darwin)
+            if command -v brew >/dev/null 2>&1; then
+                brew install --cask mactex
+            fi
+            ;;
+        Linux)
+            if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update -qq && sudo apt-get install -y -qq texlive-full
+            elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y texlive-scheme-full
+            elif command -v pacman >/dev/null 2>&1; then
+                sudo pacman -S --noconfirm texlive-most
+            fi
+            ;;
+    esac
+    echo "  LaTeX installed (restart terminal if lualatex is not found)"
+else
+    echo "  lualatex: found"
+fi
+
+if ! command -v xelatex >/dev/null 2>&1; then
+    echo "  [WARN] xelatex not found - cover letter compilation may fail"
+else
+    echo "  xelatex: found"
+fi
+
+# poppler (pdftotext) - optional
+if ! command -v pdftotext >/dev/null 2>&1; then
+    echo "  Installing poppler..."
+    case "$DETECTED_OS" in
+        Darwin)
+            if command -v brew >/dev/null 2>&1; then
+                brew install poppler
+            fi
+            ;;
+        Linux)
+            if command -v apt-get >/dev/null 2>&1; then
+                sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+            elif command -v dnf >/dev/null 2>&1; then
+                sudo dnf install -y poppler-utils
+            elif command -v pacman >/dev/null 2>&1; then
+                sudo pacman -S --noconfirm poppler
+            fi
+            ;;
+    esac
+    echo "  poppler installed"
+else
+    echo "  pdftotext: found"
+fi
+
 echo ""
 
+# ------------------------------------------------------------------
 # 2. Install Bun dependencies for CLI scrapers
-echo "[2/4] Installing Bun dependencies for scrapers..."
+# ------------------------------------------------------------------
+echo "[2/5] Installing Bun dependencies for scrapers..."
 
 for dir in linkedin-search freehire-search; do
     cli_path="${REPO_ROOT}/.agents/skills/${dir}/cli"
@@ -41,8 +126,10 @@ for dir in linkedin-search freehire-search; do
 done
 echo ""
 
+# ------------------------------------------------------------------
 # 3. Copy commands and skills
-echo "[3/4] Copying commands and skills to ${OPENCODE_CONFIG}..."
+# ------------------------------------------------------------------
+echo "[3/5] Copying commands and skills to ${OPENCODE_CONFIG}..."
 
 mkdir -p "${OPENCODE_CONFIG}/commands"
 mkdir -p "${OPENCODE_CONFIG}/skills"
@@ -59,18 +146,19 @@ for dir in job-search job-scraper job-tools; do
 done
 echo ""
 
-# 4. Register agents in opencode.json automatically
-echo "[4/4] Registering agents in opencode.json..."
+# ------------------------------------------------------------------
+# 4. Register agents in opencode.json
+# ------------------------------------------------------------------
+echo "[4/5] Registering agents in opencode.json..."
 
 CONFIG_PATH="${OPENCODE_CONFIG}/opencode.json"
 
 if [ ! -f "$CONFIG_PATH" ]; then
     echo "  [ERROR] opencode.json not found at $CONFIG_PATH"
-    echo "  Make sure OpenCode is installed and has been run at least once."
+    echo "  Make sure OpenCode is installed (npm i -g opencode) and has been run at least once."
     exit 1
 fi
 
-# Use python to merge agents (available on all platforms)
 python3 -c "
 import json, sys
 
@@ -122,12 +210,27 @@ for s in skipped:
 "
 
 echo ""
+
+# ------------------------------------------------------------------
+# 5. Done
+# ------------------------------------------------------------------
+echo "[5/5] Checking OpenCode..."
+
+if ! command -v opencode >/dev/null 2>&1; then
+    echo "  [ACTION REQUIRED] OpenCode CLI not found."
+    echo "  Install it with: npm i -g opencode"
+else
+    echo "  opencode: found"
+fi
+
+echo ""
 echo "========================================"
-echo " Installation complete!"
+echo " All done!"
 echo "========================================"
 echo ""
-echo "  Next steps:"
-echo "  1. Run /job-setup to build your profile"
-echo "  2. Run /job-scrape to search for jobs"
-echo "  3. Run /job-apply <url> to apply"
+echo "  Open a terminal here and run:"
+echo "    opencode"
+echo ""
+echo "  Then:"
+echo "    /job-setup"
 echo ""
