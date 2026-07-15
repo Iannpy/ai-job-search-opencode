@@ -165,7 +165,7 @@ import json, sys
 with open('$CONFIG_PATH') as f:
     config = json.load(f)
 
-config.setdefault('agents', {})
+config.setdefault('agent', {})
 
 new_agents = {
     'job-assistant': {
@@ -193,10 +193,10 @@ new_agents = {
 added = []
 skipped = []
 for name, agent in new_agents.items():
-    if name in config['agents']:
+    if name in config['agent']:
         skipped.append(name)
     else:
-        config['agents'][name] = agent
+        config['agent'][name] = agent
         added.append(name)
 
 with open('$CONFIG_PATH', 'w') as f:

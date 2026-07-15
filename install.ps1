@@ -163,19 +163,19 @@ $newAgents = @{
 }
 
 # Ensure agents property exists
-if (-not ($config | Get-Member -Name "agents" -MemberType NoteProperty)) {
-    $config | Add-Member -MemberType NoteProperty -Name "agents" -Value ([PSCustomObject]@{})
+if (-not ($config | Get-Member -Name "agent" -MemberType NoteProperty)) {
+    $config | Add-Member -MemberType NoteProperty -Name "agent" -Value ([PSCustomObject]@{})
 }
 
 $added = @()
 $skipped = @()
 
 foreach ($agentName in $newAgents.Keys) {
-    $existing = $config.agents | Get-Member -MemberType NoteProperty -Name $agentName -ErrorAction SilentlyContinue
+    $existing = $config.agent | Get-Member -MemberType NoteProperty -Name $agentName -ErrorAction SilentlyContinue
     if ($existing) {
         $skipped += $agentName
     } else {
-        $config.agents | Add-Member -MemberType NoteProperty -Name $agentName -Value $newAgents[$agentName]
+        $config.agent | Add-Member -MemberType NoteProperty -Name $agentName -Value $newAgents[$agentName]
         $added += $agentName
     }
 }
